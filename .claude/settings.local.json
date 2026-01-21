@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss init:*)",
+      "Bash(npx prisma init:*)",
+      "Bash(npm run db:generate:*)",
+      "Bash(npx vercel login:*)",
+      "Bash(npx vercel postgres create:*)",
+      "Bash(npx vercel:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
