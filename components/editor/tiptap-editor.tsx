@@ -113,24 +113,26 @@ export function TiptapEditor({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose lg:prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[500px] px-8 py-4",
+          "prose prose-sm sm:prose lg:prose-lg dark:prose-invert focus:outline-none min-h-[500px] px-16 pt-8 pb-4 !max-w-none",
       },
     },
   });
 
   if (!editor) {
     return (
-      <div className="border rounded-lg overflow-hidden">
-        <div className="border-b p-2 h-12 bg-muted/50 animate-pulse" />
-        <div className="min-h-[500px] p-8 animate-pulse bg-muted/20" />
+      <div className="overflow-hidden flex-1 flex flex-col">
+        <div className="border-b h-10 bg-muted/50 animate-pulse" />
+        <div className="flex-1 max-w-4xl mx-auto w-full px-8 py-4 animate-pulse bg-muted/20" />
       </div>
     );
   }
 
   return (
-    <div className="border rounded-lg overflow-hidden bg-background">
+    <div className="overflow-hidden bg-background flex-1 flex flex-col">
       {editable && <MenuBar editor={editor} />}
-      <EditorContent editor={editor} />
+      <div className="flex-1 overflow-y-auto">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }

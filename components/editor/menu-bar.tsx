@@ -55,20 +55,26 @@ function ToolbarButton({
   shortcut,
   children,
 }: ToolbarButtonProps) {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onClick();
+  };
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClick}
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handleClick}
           disabled={disabled}
-          className={isActive ? "bg-muted" : ""}
+          className={`inline-flex items-center justify-center rounded text-sm transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 h-7 w-7 hover:bg-accent hover:text-accent-foreground ${isActive ? "bg-muted" : ""}`}
         >
           {children}
-        </Button>
+        </button>
       </TooltipTrigger>
-      <TooltipContent>
+      <TooltipContent side="bottom">
         <p>
           {tooltip}
           {shortcut && (
@@ -81,7 +87,7 @@ function ToolbarButton({
 }
 
 function Divider() {
-  return <div className="w-px h-6 bg-border mx-1" />;
+  return <div className="w-px h-5 bg-border mx-0.5" />;
 }
 
 export function MenuBar({ editor }: MenuBarProps) {
@@ -117,7 +123,27 @@ export function MenuBar({ editor }: MenuBarProps) {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="border-b p-2 flex flex-wrap gap-1 sticky top-0 bg-background z-10">
+      <div className="border-b py-1.5 flex items-center justify-center gap-0.5 bg-background z-10 overflow-x-auto">
+        {/* 撤销重做 */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().undo().run()}
+          disabled={!editor.can().undo()}
+          tooltip="撤销"
+          shortcut="⌘Z"
+        >
+          <Undo className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().redo().run()}
+          disabled={!editor.can().redo()}
+          tooltip="重做"
+          shortcut="⌘⇧Z"
+        >
+          <Redo className="h-4 w-4" />
+        </ToolbarButton>
+
+        <Divider />
+
         {/* 文本格式 */}
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -296,26 +322,6 @@ export function MenuBar({ editor }: MenuBarProps) {
             </ToolbarButton>
           </>
         )}
-
-        <Divider />
-
-        {/* 撤销重做 */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().undo().run()}
-          disabled={!editor.can().undo()}
-          tooltip="撤销"
-          shortcut="⌘Z"
-        >
-          <Undo className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().redo().run()}
-          disabled={!editor.can().redo()}
-          tooltip="重做"
-          shortcut="⌘⇧Z"
-        >
-          <Redo className="h-4 w-4" />
-        </ToolbarButton>
       </div>
     </TooltipProvider>
   );

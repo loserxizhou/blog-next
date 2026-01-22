@@ -30,7 +30,7 @@ export function LoginForm() {
       if (result?.error) {
         setError("邮箱或密码错误");
       } else {
-        router.push("/dashboard");
+        router.push("/kb");
         router.refresh();
       }
     } catch (error) {
@@ -41,7 +41,7 @@ export function LoginForm() {
   };
 
   const handleOAuthLogin = async (provider: "github" | "google") => {
-    await signIn(provider, { callbackUrl: "/dashboard" });
+    await signIn(provider, { callbackUrl: "/kb" });
   };
 
   return (

@@ -41,8 +41,8 @@ export function Navbar({ user }: NavbarProps) {
         <div className="flex items-center gap-4">
           {user ? (
             <>
-              <Link href="/dashboard">
-                <Button variant="ghost">控制台</Button>
+              <Link href="/kb">
+                <Button variant="ghost">开始</Button>
               </Link>
               <form action="/api/auth/signout" method="POST">
                 <Button variant="outline" type="submit">

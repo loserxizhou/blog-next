@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useRef, Suspense, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { TiptapEditor } from "@/components/editor/tiptap-editor";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -20,7 +20,11 @@ import {
   Clock,
   Check,
   AlertCircle,
+  Loader2,
+  FileText,
+  List,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type SaveStatus = "saved" | "saving" | "unsaved" | "error";
 
@@ -29,20 +33,51 @@ type KnowledgeBase = {
   name: string;
 };
 
-export default function NewDocPage() {
+type DocItem = {
+  id: string;
+  title: string;
+  updatedAt: string;
+};
+
+type Heading = {
+  id: string;
+  text: string;
+  level: number;
+};
+
+function NewDocPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [knowledgeBaseId, setKnowledgeBaseId] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
+  const [kbDocs, setKbDocs] = useState<DocItem[]>([]);
+  const [headings, setHeadings] = useState<Heading[]>([]);
   const [characterCount, setCharacterCount] = useState({ characters: 0, words: 0 });
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [docId, setDocId] = useState<string | null>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 从内容中提取标题
+  const extractHeadings = useCallback((htmlContent: string) => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlContent, "text/html");
+    const headingElements = doc.querySelectorAll("h1, h2, h3");
+    const extracted: Heading[] = [];
+    headingElements.forEach((heading, index) => {
+      extracted.push({
+        id: `heading-${index}`,
+        text: heading.textContent || "",
+        level: parseInt(heading.tagName[1]),
+      });
+    });
+    setHeadings(extracted);
+  }, []);
 
   // 获取知识库列表
   useEffect(() => {
@@ -55,6 +90,44 @@ export default function NewDocPage() {
       })
       .catch(() => {});
   }, []);
+
+  // 检查是否有导入的内容
+  useEffect(() => {
+    if (searchParams.get("import") === "true") {
+      const importedData = sessionStorage.getItem("importedDoc");
+      if (importedData) {
+        try {
+          const { title: importedTitle, content: importedContent } = JSON.parse(importedData);
+          setTitle(importedTitle || "");
+          setContent(importedContent || "");
+          extractHeadings(importedContent || "");
+          setHasUnsavedChanges(true);
+          setSaveStatus("unsaved");
+          sessionStorage.removeItem("importedDoc");
+        } catch {
+          // 解析失败，忽略
+        }
+      }
+    }
+  }, [searchParams, extractHeadings]);
+
+  // 当知识库变化时，获取该知识库的文档列表
+  useEffect(() => {
+    if (knowledgeBaseId) {
+      fetch(`/api/knowledge-bases/${knowledgeBaseId}/docs`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.docs) {
+            setKbDocs(data.docs);
+          }
+        })
+        .catch(() => {
+          setKbDocs([]);
+        });
+    } else {
+      setKbDocs([]);
+    }
+  }, [knowledgeBaseId]);
 
   // 离开页面确认
   useEffect(() => {
@@ -71,9 +144,10 @@ export default function NewDocPage() {
   // 内容变化时标记未保存
   const handleContentChange = useCallback((newContent: string) => {
     setContent(newContent);
+    extractHeadings(newContent);
     setHasUnsavedChanges(true);
     setSaveStatus("unsaved");
-  }, []);
+  }, [extractHeadings]);
 
   const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
@@ -160,7 +234,7 @@ export default function NewDocPage() {
       return;
     }
 
-    setIsLoading(true);
+    setSaving(true);
     setSaveStatus("saving");
 
     try {
@@ -180,8 +254,6 @@ export default function NewDocPage() {
         if (response.ok) {
           setSaveStatus("saved");
           setHasUnsavedChanges(false);
-          router.push("/kb/categories");
-          router.refresh();
         } else {
           setSaveStatus("error");
           alert("保存失败");
@@ -200,10 +272,10 @@ export default function NewDocPage() {
         });
 
         if (response.ok) {
+          const data = await response.json();
+          setDocId(data.doc.id);
           setSaveStatus("saved");
           setHasUnsavedChanges(false);
-          router.push("/kb/categories");
-          router.refresh();
         } else {
           setSaveStatus("error");
           alert("保存失败");
@@ -213,7 +285,7 @@ export default function NewDocPage() {
       setSaveStatus("error");
       alert("保存失败");
     } finally {
-      setIsLoading(false);
+      setSaving(false);
     }
   };
 
@@ -260,22 +332,37 @@ export default function NewDocPage() {
     }
   };
 
-  const selectedKb = knowledgeBases.find((kb) => kb.id === knowledgeBaseId);
+  const selectedKb = useMemo(
+    () => knowledgeBases.find((kb) => kb.id === knowledgeBaseId),
+    [knowledgeBases, knowledgeBaseId]
+  );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* 顶部工具栏 */}
       <div className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={handleBack}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              返回
+        <div className="flex items-center px-4 py-2 gap-4">
+          {/* 左侧：返回 + 保存状态 */}
+          <div className="flex items-center gap-3 w-64 flex-shrink-0">
+            <Button variant="ghost" size="icon" onClick={handleBack} className="flex-shrink-0">
+              <ArrowLeft className="h-4 w-4" />
             </Button>
             <SaveStatusIndicator />
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* 中间：标题 */}
+          <div className="flex-1 flex justify-center">
+            <input
+              type="text"
+              placeholder="无标题"
+              value={title}
+              onChange={handleTitleChange}
+              className="w-full max-w-md text-center text-base font-medium bg-transparent border-none outline-none placeholder:text-muted-foreground/50"
+            />
+          </div>
+
+          {/* 右侧：操作按钮 */}
+          <div className="flex items-center gap-2 w-64 flex-shrink-0 justify-end">
             {/* 知识库选择 */}
             <Select
               value={knowledgeBaseId || "none"}
@@ -285,8 +372,8 @@ export default function NewDocPage() {
                 setSaveStatus("unsaved");
               }}
             >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="选择知识库" />
+              <SelectTrigger className="w-[100px] h-8">
+                <SelectValue placeholder="知识库" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">无知识库</SelectItem>
@@ -298,58 +385,151 @@ export default function NewDocPage() {
               </SelectContent>
             </Select>
 
-            {/* 收藏开关 */}
-            <div className="flex items-center gap-2">
+            {/* 收藏 */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => {
+                setIsFavorite(!isFavorite);
+                setHasUnsavedChanges(true);
+                setSaveStatus("unsaved");
+              }}
+            >
               <Star
                 className={`h-4 w-4 ${isFavorite ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`}
               />
-              <Switch checked={isFavorite} onCheckedChange={setIsFavorite} />
-            </div>
+            </Button>
 
-            {/* 公开开关 */}
-            <div className="flex items-center gap-2">
+            {/* 公开 */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => {
+                setIsPublic(!isPublic);
+                setHasUnsavedChanges(true);
+                setSaveStatus("unsaved");
+              }}
+            >
               <Globe
                 className={`h-4 w-4 ${isPublic ? "text-blue-500" : "text-muted-foreground"}`}
               />
-              <Switch checked={isPublic} onCheckedChange={setIsPublic} />
-            </div>
+            </Button>
 
-            <Button onClick={handleSave} disabled={isLoading}>
-              <Save className="h-4 w-4 mr-2" />
-              {isLoading ? "保存中..." : "保存"}
+            <Button size="sm" onClick={handleSave} disabled={saving} className="h-8">
+              <Save className="h-4 w-4 mr-1" />
+              {saving ? "保存中" : "保存"}
             </Button>
           </div>
         </div>
       </div>
 
-      {/* 编辑区域 */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* 标题输入 */}
-        <input
-          type="text"
-          placeholder="无标题"
-          value={title}
-          onChange={handleTitleChange}
-          className="w-full text-4xl font-bold bg-transparent border-none outline-none placeholder:text-muted-foreground/50 mb-8"
-        />
+      {/* 三栏布局 */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* 左侧：文档列表 */}
+        <aside className="w-64 border-r bg-muted/10 overflow-y-auto flex-shrink-0">
+          <div className="p-4">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              {selectedKb ? selectedKb.name : "文档列表"}
+            </h3>
+            {knowledgeBaseId ? (
+              kbDocs.length > 0 ? (
+                <nav className="space-y-1">
+                  {kbDocs.map((doc) => (
+                    <Link
+                      key={doc.id}
+                      href={`/dashboard/docs/${doc.id}`}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors",
+                        "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      <FileText className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">{doc.title}</span>
+                    </Link>
+                  ))}
+                </nav>
+              ) : (
+                <p className="text-sm text-muted-foreground px-3">暂无文档</p>
+              )
+            ) : (
+              <p className="text-sm text-muted-foreground px-3">
+                选择知识库后显示文档列表
+              </p>
+            )}
+          </div>
+        </aside>
 
-        {/* 编辑器 */}
-        <TiptapEditor
-          content={content}
-          onChange={handleContentChange}
-          placeholder="开始编写文档..."
-          onCharacterCountChange={setCharacterCount}
-        />
+        {/* 中间：编辑器 */}
+        <main className="flex-1 overflow-y-auto flex flex-col">
+          {/* 编辑器 */}
+          <TiptapEditor
+            content={content}
+            onChange={handleContentChange}
+            placeholder="开始编写文档..."
+            onCharacterCountChange={setCharacterCount}
+          />
 
-        {/* 底部状态栏 */}
-        <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-4">
+          {/* 底部状态栏 */}
+          <div className="fixed bottom-4 right-72 text-xs text-muted-foreground">
             <span>{characterCount.characters} 字符</span>
+            <span className="mx-2">·</span>
             <span>{characterCount.words} 词</span>
           </div>
-          {selectedKb && <span>知识库: {selectedKb.name}</span>}
-        </div>
+        </main>
+
+        {/* 右侧：大纲 */}
+        <aside className="w-56 border-l bg-muted/10 overflow-y-auto flex-shrink-0">
+          <div className="p-4">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+              <List className="h-4 w-4" />
+              大纲
+            </h3>
+            {headings.length > 0 ? (
+              <nav className="space-y-1">
+                {headings.map((heading) => (
+                  <button
+                    key={heading.id}
+                    className="w-full text-left text-sm text-muted-foreground hover:text-foreground transition-colors truncate px-2 py-1 rounded hover:bg-muted"
+                    style={{ paddingLeft: `${(heading.level - 1) * 12 + 8}px` }}
+                    onClick={() => {
+                      // 滚动到对应标题
+                      const editorContent = document.querySelector('.ProseMirror');
+                      if (editorContent) {
+                        const headingElements = editorContent.querySelectorAll('h1, h2, h3');
+                        const targetHeading = headingElements[headings.indexOf(heading)];
+                        targetHeading?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
+                    }}
+                  >
+                    {heading.text || "无标题"}
+                  </button>
+                ))}
+              </nav>
+            ) : (
+              <p className="text-sm text-muted-foreground px-2">
+                添加标题后显示大纲
+              </p>
+            )}
+          </div>
+        </aside>
       </div>
     </div>
+  );
+}
+
+export default function NewDocPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <NewDocPageContent />
+    </Suspense>
   );
 }

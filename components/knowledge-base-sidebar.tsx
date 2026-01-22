@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, FolderTree, Star, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserAvatarDropdown } from "@/components/user-avatar-dropdown";
 
 const menuItems = [
   { icon: Home, label: "开始", href: "/kb" },
@@ -12,13 +13,22 @@ const menuItems = [
   { icon: Users, label: "社区", href: "/kb/community" },
 ];
 
-export function KnowledgeBaseSidebar() {
+interface KnowledgeBaseSidebarProps {
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
+}
+
+export function KnowledgeBaseSidebar({ user }: KnowledgeBaseSidebarProps) {
   const pathname = usePathname();
 
   return (
     <aside className="w-56 border-r border-gray-200 dark:border-border bg-white dark:bg-card p-4">
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <h2 className="text-[16px] font-semibold">知识库</h2>
+        <UserAvatarDropdown user={user} />
       </div>
       <nav className="space-y-1">
         {menuItems.map((item) => {

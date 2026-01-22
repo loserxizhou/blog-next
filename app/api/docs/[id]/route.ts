@@ -18,6 +18,9 @@ export async function GET(
       knowledgeBase: {
         select: { id: true, name: true },
       },
+      author: {
+        select: { id: true, name: true },
+      },
     },
   });
 
@@ -25,7 +28,10 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json(doc);
+  // 添加 isAuthor 字段
+  const isAuthor = session.user.id === doc.authorId;
+
+  return NextResponse.json({ ...doc, isAuthor });
 }
 
 export async function PUT(
