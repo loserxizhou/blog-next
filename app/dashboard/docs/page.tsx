@@ -17,7 +17,7 @@ export default async function DocsPage() {
       authorId: session.user.id,
     },
     orderBy: {
-      order: "asc",
+      updatedAt: "desc",
     },
   });
 
@@ -56,7 +56,7 @@ export default async function DocsPage() {
                     <h3 className="text-xl font-semibold mb-2">{doc.title}</h3>
                     {doc.category && (
                       <span className="text-sm text-muted-foreground">
-                        分类: {doc.category}
+                        知识库: {doc.category}
                       </span>
                     )}
                   </div>

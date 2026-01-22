@@ -9,14 +9,11 @@ export default function Home() {
           欢迎来到 <span className="text-primary">Bloc</span>
         </h1>
         <p className="text-xl text-muted-foreground mb-8">
-          一个现代化的博客与文档管理平台
+          个人知识库系统
         </p>
         <div className="flex gap-4 justify-center">
           <Button asChild size="lg">
-            <Link href="/blog">浏览博客</Link>
-          </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href="/docs">查看文档</Link>
+            <Link href="/kb">进入知识库</Link>
           </Button>
           <Button asChild variant="secondary" size="lg">
             <Link href="/login">登录</Link>

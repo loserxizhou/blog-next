@@ -14,19 +14,19 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          Role      @default(AUTHOR)
-  posts         Post[]
-  docs          Doc[]
-  accounts      Account[]
-  sessions      Session[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id             String          @id @default(cuid())
+  name           String?
+  email          String          @unique
+  emailVerified  DateTime?
+  image          String?
+  password       String?
+  role           Role            @default(AUTHOR)
+  docs           Doc[]
+  knowledgeBases KnowledgeBase[]
+  accounts       Account[]
+  sessions       Session[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 }
 
 enum Role {
@@ -72,47 +72,48 @@ model VerificationToken {
   @@id([identifier, token])
 }
 
-model Post {
+model KnowledgeBase {
   id          String   @id @default(cuid())
-  title       String
-  slug        String   @unique
-  content     String   @db.Text
-  excerpt     String?
-  coverImage  String?
-  published   Boolean  @default(false)
+  name        String
+  description String?
   authorId    String
   author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  tags        Tag[]
+  docs        Doc[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([authorId])
-  @@index([slug])
-  @@index([published])
 }
 
 model Doc {
-  id          String   @id @default(cuid())
-  title       String
-  slug        String   @unique
-  content     String   @db.Text
-  category    String?
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  published   Boolean  @default(true)
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String         @id @default(cuid())
+  title           String
+  slug            String         @unique
+  content         String         @db.Text
+  category        String?
+  knowledgeBaseId String?
+  knowledgeBase   KnowledgeBase? @relation(fields: [knowledgeBaseId], references: [id], onDelete: SetNull)
+  authorId        String
+  author          User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  published       Boolean        @default(true)
+  isFavorite      Boolean        @default(false)
+  isPublic        Boolean        @default(false)
+  tags            Tag[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   @@index([authorId])
   @@index([slug])
   @@index([category])
+  @@index([knowledgeBaseId])
   @@index([published])
+  @@index([isFavorite])
+  @@index([isPublic])
 }
 
 model Tag {
-  id    String @id @default(cuid())
-  name  String @unique
-  posts Post[]
+  id        String   @id @default(cuid())
+  name      String   @unique
+  docs      Doc[]
   createdAt DateTime @default(now())
 }

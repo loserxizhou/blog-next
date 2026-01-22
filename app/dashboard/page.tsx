@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, BookOpen, Settings } from "lucide-react";
+import { BookOpen, FolderTree } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -21,44 +21,29 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <FileText className="h-8 w-8 mb-2 text-primary" />
-            <CardTitle>博客文章</CardTitle>
-            <CardDescription>管理你的博客文章</CardDescription>
+            <BookOpen className="h-8 w-8 mb-2 text-primary" />
+            <CardTitle>知识库</CardTitle>
+            <CardDescription>浏览和管理你的知识库</CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/dashboard/posts">
-              <Button className="w-full">管理文章</Button>
+            <Link href="/kb">
+              <Button className="w-full">进入知识库</Button>
             </Link>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <BookOpen className="h-8 w-8 mb-2 text-primary" />
-            <CardTitle>文档</CardTitle>
-            <CardDescription>管理你的文档</CardDescription>
+            <FolderTree className="h-8 w-8 mb-2 text-primary" />
+            <CardTitle>文档管理</CardTitle>
+            <CardDescription>创建和编辑文档</CardDescription>
           </CardHeader>
           <CardContent>
             <Link href="/dashboard/docs">
               <Button className="w-full">管理文档</Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <Settings className="h-8 w-8 mb-2 text-primary" />
-            <CardTitle>设置</CardTitle>
-            <CardDescription>账号和系统设置</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/dashboard/settings">
-              <Button className="w-full" variant="outline">
-                前往设置
-              </Button>
             </Link>
           </CardContent>
         </Card>

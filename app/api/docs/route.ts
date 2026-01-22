@@ -7,6 +7,9 @@ const docSchema = z.object({
   title: z.string().min(1),
   content: z.string(),
   category: z.string().optional(),
+  knowledgeBaseId: z.string().optional(),
+  isFavorite: z.boolean().optional(),
+  isPublic: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -32,6 +35,9 @@ export async function POST(request: Request) {
         slug,
         content: validatedData.content,
         category: validatedData.category,
+        knowledgeBaseId: validatedData.knowledgeBaseId,
+        isFavorite: validatedData.isFavorite ?? false,
+        isPublic: validatedData.isPublic ?? false,
         authorId: session.user.id,
       },
     });
@@ -64,8 +70,13 @@ export async function GET(request: Request) {
       where: {
         authorId: session.user.id,
       },
+      include: {
+        knowledgeBase: {
+          select: { id: true, name: true },
+        },
+      },
       orderBy: {
-        order: "asc",
+        createdAt: "desc",
       },
     });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { use, useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { TiptapEditor } from "@/components/editor/tiptap-editor";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
   Clock,
   Check,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 
 type SaveStatus = "saved" | "saving" | "unsaved" | "error";
@@ -29,32 +30,54 @@ type KnowledgeBase = {
   name: string;
 };
 
-export default function NewDocPage() {
+export default function EditDocPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [knowledgeBaseId, setKnowledgeBaseId] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
-  const [characterCount, setCharacterCount] = useState({ characters: 0, words: 0 });
+  const [characterCount, setCharacterCount] = useState({
+    characters: 0,
+    words: 0,
+  });
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [docId, setDocId] = useState<string | null>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const initialLoadRef = useRef(true);
 
-  // 获取知识库列表
+  // 获取文档数据和知识库列表
   useEffect(() => {
-    fetch("/api/knowledge-bases")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.knowledgeBases) {
-          setKnowledgeBases(data.knowledgeBases);
+    Promise.all([
+      fetch(`/api/docs/${id}`).then((res) => res.json()),
+      fetch("/api/knowledge-bases").then((res) => res.json()),
+    ])
+      .then(([docData, kbData]) => {
+        setTitle(docData.title);
+        setContent(docData.content);
+        setKnowledgeBaseId(docData.knowledgeBaseId || null);
+        setIsFavorite(docData.isFavorite || false);
+        setIsPublic(docData.isPublic || false);
+
+        if (kbData.knowledgeBases) {
+          setKnowledgeBases(kbData.knowledgeBases);
         }
+
+        setLoading(false);
+        initialLoadRef.current = false;
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => {
+        setLoading(false);
+      });
+  }, [id]);
 
   // 离开页面确认
   useEffect(() => {
@@ -71,19 +94,24 @@ export default function NewDocPage() {
   // 内容变化时标记未保存
   const handleContentChange = useCallback((newContent: string) => {
     setContent(newContent);
-    setHasUnsavedChanges(true);
-    setSaveStatus("unsaved");
+    if (!initialLoadRef.current) {
+      setHasUnsavedChanges(true);
+      setSaveStatus("unsaved");
+    }
   }, []);
 
-  const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
-    setHasUnsavedChanges(true);
-    setSaveStatus("unsaved");
-  }, []);
+  const handleTitleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setTitle(e.target.value);
+      setHasUnsavedChanges(true);
+      setSaveStatus("unsaved");
+    },
+    []
+  );
 
   // 自动保存
   useEffect(() => {
-    if (!hasUnsavedChanges || !title.trim()) return;
+    if (!hasUnsavedChanges || !title.trim() || loading) return;
 
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
@@ -98,7 +126,7 @@ export default function NewDocPage() {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [content, title, knowledgeBaseId, isFavorite, isPublic, hasUnsavedChanges]);
+  }, [content, title, knowledgeBaseId, isFavorite, isPublic, hasUnsavedChanges, loading]);
 
   const handleAutoSave = async () => {
     if (!title.trim()) return;
@@ -106,48 +134,23 @@ export default function NewDocPage() {
     setSaveStatus("saving");
 
     try {
-      if (docId) {
-        // 更新已有文档
-        const response = await fetch(`/api/docs/${docId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title,
-            content,
-            knowledgeBaseId: knowledgeBaseId || undefined,
-            isFavorite,
-            isPublic,
-          }),
-        });
+      const response = await fetch(`/api/docs/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          content,
+          knowledgeBaseId: knowledgeBaseId || undefined,
+          isFavorite,
+          isPublic,
+        }),
+      });
 
-        if (response.ok) {
-          setSaveStatus("saved");
-          setHasUnsavedChanges(false);
-        } else {
-          setSaveStatus("error");
-        }
+      if (response.ok) {
+        setSaveStatus("saved");
+        setHasUnsavedChanges(false);
       } else {
-        // 创建新文档
-        const response = await fetch("/api/docs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title,
-            content,
-            knowledgeBaseId: knowledgeBaseId || undefined,
-            isFavorite,
-            isPublic,
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setDocId(data.doc.id);
-          setSaveStatus("saved");
-          setHasUnsavedChanges(false);
-        } else {
-          setSaveStatus("error");
-        }
+        setSaveStatus("error");
       }
     } catch {
       setSaveStatus("error");
@@ -160,60 +163,36 @@ export default function NewDocPage() {
       return;
     }
 
-    setIsLoading(true);
+    setSaving(true);
     setSaveStatus("saving");
 
     try {
-      if (docId) {
-        const response = await fetch(`/api/docs/${docId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title,
-            content,
-            knowledgeBaseId: knowledgeBaseId || undefined,
-            isFavorite,
-            isPublic,
-          }),
-        });
+      const response = await fetch(`/api/docs/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          content,
+          knowledgeBaseId: knowledgeBaseId || undefined,
+          isFavorite,
+          isPublic,
+        }),
+      });
 
-        if (response.ok) {
-          setSaveStatus("saved");
-          setHasUnsavedChanges(false);
-          router.push("/kb/categories");
-          router.refresh();
-        } else {
-          setSaveStatus("error");
-          alert("保存失败");
-        }
+      if (response.ok) {
+        setSaveStatus("saved");
+        setHasUnsavedChanges(false);
+        router.push("/kb/categories");
+        router.refresh();
       } else {
-        const response = await fetch("/api/docs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title,
-            content,
-            knowledgeBaseId: knowledgeBaseId || undefined,
-            isFavorite,
-            isPublic,
-          }),
-        });
-
-        if (response.ok) {
-          setSaveStatus("saved");
-          setHasUnsavedChanges(false);
-          router.push("/kb/categories");
-          router.refresh();
-        } else {
-          setSaveStatus("error");
-          alert("保存失败");
-        }
+        setSaveStatus("error");
+        alert("保存失败");
       }
     } catch {
       setSaveStatus("error");
       alert("保存失败");
     } finally {
-      setIsLoading(false);
+      setSaving(false);
     }
   };
 
@@ -260,6 +239,14 @@ export default function NewDocPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   const selectedKb = knowledgeBases.find((kb) => kb.id === knowledgeBaseId);
 
   return (
@@ -303,7 +290,14 @@ export default function NewDocPage() {
               <Star
                 className={`h-4 w-4 ${isFavorite ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`}
               />
-              <Switch checked={isFavorite} onCheckedChange={setIsFavorite} />
+              <Switch
+                checked={isFavorite}
+                onCheckedChange={(checked) => {
+                  setIsFavorite(checked);
+                  setHasUnsavedChanges(true);
+                  setSaveStatus("unsaved");
+                }}
+              />
             </div>
 
             {/* 公开开关 */}
@@ -311,12 +305,19 @@ export default function NewDocPage() {
               <Globe
                 className={`h-4 w-4 ${isPublic ? "text-blue-500" : "text-muted-foreground"}`}
               />
-              <Switch checked={isPublic} onCheckedChange={setIsPublic} />
+              <Switch
+                checked={isPublic}
+                onCheckedChange={(checked) => {
+                  setIsPublic(checked);
+                  setHasUnsavedChanges(true);
+                  setSaveStatus("unsaved");
+                }}
+              />
             </div>
 
-            <Button onClick={handleSave} disabled={isLoading}>
+            <Button onClick={handleSave} disabled={saving}>
               <Save className="h-4 w-4 mr-2" />
-              {isLoading ? "保存中..." : "保存"}
+              {saving ? "保存中..." : "保存"}
             </Button>
           </div>
         </div>
