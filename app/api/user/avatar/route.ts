@@ -54,9 +54,6 @@ export async function POST(req: Request) {
     const filename = `${session.user.id}-${Date.now()}.${ext}`;
     const filepath = `avatars/${filename}`;
 
-    // 转换文件为 ArrayBuffer
-    const arrayBuffer = await file.arrayBuffer();
-
     // 上传到 Supabase Storage
     const { error: uploadError } = await supabaseAdmin.storage
       .from("uploads")
