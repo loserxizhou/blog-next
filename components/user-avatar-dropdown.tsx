@@ -1,6 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { User, Moon, Sun, LogOut, Settings } from "lucide-react";
 import {
@@ -21,6 +22,7 @@ interface UserAvatarDropdownProps {
 
 export function UserAvatarDropdown({ user }: UserAvatarDropdownProps) {
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -66,7 +68,7 @@ export function UserAvatarDropdown({ user }: UserAvatarDropdownProps) {
             </>
           )}
         </DropdownMenuItem>
-        <DropdownMenuItem disabled>
+        <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
           <Settings className="h-4 w-4 mr-2" />
           个人设置
         </DropdownMenuItem>

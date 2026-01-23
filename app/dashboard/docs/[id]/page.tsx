@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { use, useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { TiptapEditor } from "@/components/editor/tiptap-editor";
@@ -47,7 +47,7 @@ type Heading = {
   level: number;
 };
 
-export default function DocPage({
+function DocPageContent({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -531,3 +531,22 @@ export default function DocPage({
     </div>
   );
 }
+
+export default function DocPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <DocPageContent params={params} />
+    </Suspense>
+  );
+}
+
