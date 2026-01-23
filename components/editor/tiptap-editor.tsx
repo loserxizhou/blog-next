@@ -1,6 +1,7 @@
 "use client";
 
 import { useEditor, EditorContent } from "@tiptap/react";
+import { useEffect } from "react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Link from "@tiptap/extension-link";
@@ -117,6 +118,19 @@ export function TiptapEditor({
       },
     },
   });
+
+  // 当 editable 属性变化时，更新编辑器状态并聚焦
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(editable);
+      if (editable) {
+        // 延迟聚焦，确保编辑器状态已更新
+        setTimeout(() => {
+          editor.commands.focus();
+        }, 0);
+      }
+    }
+  }, [editor, editable]);
 
   if (!editor) {
     return (
