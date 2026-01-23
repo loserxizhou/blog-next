@@ -52,7 +52,9 @@ export function RegisterForm() {
       if (!response.ok) {
         setError(data.error || "注册失败");
       } else {
-        router.push("/login?registered=true");
+        // 临时存储密码用于自动填充登录表单
+        sessionStorage.setItem("register_password", formData.password);
+        router.push(`/login?email=${encodeURIComponent(formData.email)}`);
       }
     } catch (error) {
       setError("注册失败，请重试");

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -10,10 +10,27 @@ import { Github } from "lucide-react";
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // 自动填充注册后的账号和密码
+  useEffect(() => {
+    const emailFromUrl = searchParams.get("email");
+    const passwordFromStorage = sessionStorage.getItem("register_password");
+
+    if (emailFromUrl) {
+      setEmail(decodeURIComponent(emailFromUrl));
+    }
+
+    if (passwordFromStorage) {
+      setPassword(passwordFromStorage);
+      // 清除存储的密码
+      sessionStorage.removeItem("register_password");
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
