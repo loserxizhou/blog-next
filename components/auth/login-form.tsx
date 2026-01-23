@@ -58,7 +58,12 @@ export function LoginForm() {
   };
 
   const handleOAuthLogin = async (provider: "github" | "google") => {
-    await signIn(provider, { callbackUrl: "/kb" });
+    try {
+      await signIn(provider, { callbackUrl: "/kb" });
+    } catch (error) {
+      console.error("OAuth login error:", error);
+      setError("OAuth 登录失败，请重试");
+    }
   };
 
   return (
