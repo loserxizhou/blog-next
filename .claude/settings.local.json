@@ -14,7 +14,24 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git remote add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(openssl rand:*)",
+      "Bash(npm run db:push)",
+      "Bash(DATABASE_URL=\"$DIRECT_URL\" npm run db:push:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(npx prisma migrate diff:*)",
+      "Bash(ping:*)",
+      "Bash(nslookup:*)",
+      "Bash(nc:*)",
+      "Bash(node:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(ls:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(psql:*)",
+      "Bash(npx prisma:*)",
+      "Bash(git restore:*)"
     ]
   }
 }

@@ -9,7 +9,9 @@
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:migrate": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +29,7 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@supabase/supabase-js": "^2.91.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tiptap/extension-character-count": "^3.16.0",
     "@tiptap/extension-code-block-lowlight": "^3.16.0",
