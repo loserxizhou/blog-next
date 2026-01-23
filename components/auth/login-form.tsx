@@ -59,10 +59,13 @@ export function LoginForm() {
 
   const handleOAuthLogin = async (provider: "github" | "google") => {
     try {
+      setIsLoading(true);
+      setError("");
       await signIn(provider, { callbackUrl: "/kb" });
     } catch (error) {
       console.error("OAuth login error:", error);
       setError("OAuth 登录失败，请重试");
+      setIsLoading(false);
     }
   };
 
@@ -109,9 +112,10 @@ export function LoginForm() {
           variant="outline"
           className="w-full"
           onClick={() => handleOAuthLogin("github")}
+          disabled={isLoading}
         >
           <Github className="mr-2 h-4 w-4" />
-          使用 GitHub 登录
+          {isLoading ? "跳转中..." : "使用 GitHub 登录"}
         </Button>
       </div>
 
