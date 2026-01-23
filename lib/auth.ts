@@ -21,6 +21,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   pages: {
     signIn: "/login",
   },
+  // 允许 OAuth 账户链接到已存在的邮箱账户
+  // 注意：这在生产环境中有安全风险，建议实现更安全的账户链接机制
+  allowDangerousEmailAccountLinking: true,
   providers: [
     Credentials({
       credentials: {
@@ -69,9 +72,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
+        token.role = user.role;
       }
       return token;
     },
