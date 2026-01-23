@@ -14,7 +14,8 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isCredentialsLoading, setIsCredentialsLoading] = useState(false);
+  const [isOAuthLoading, setIsOAuthLoading] = useState(false);
 
   // 自动填充注册后的账号和密码
   useEffect(() => {
@@ -34,7 +35,7 @@ export function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsCredentialsLoading(true);
     setError("");
 
     try {
@@ -53,19 +54,19 @@ export function LoginForm() {
     } catch (error) {
       setError("登录失败，请重试");
     } finally {
-      setIsLoading(false);
+      setIsCredentialsLoading(false);
     }
   };
 
   const handleOAuthLogin = async (provider: "github" | "google") => {
     try {
-      setIsLoading(true);
+      setIsOAuthLoading(true);
       setError("");
       await signIn(provider, { callbackUrl: "/kb" });
     } catch (error) {
       console.error("OAuth login error:", error);
       setError("OAuth 登录失败，请重试");
-      setIsLoading(false);
+      setIsOAuthLoading(false);
     }
   };
 
@@ -91,8 +92,8 @@ export function LoginForm() {
           />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "登录中..." : "登录"}
+        <Button type="submit" className="w-full" disabled={isCredentialsLoading}>
+          {isCredentialsLoading ? "登录中..." : "登录"}
         </Button>
       </form>
 
@@ -112,10 +113,10 @@ export function LoginForm() {
           variant="outline"
           className="w-full"
           onClick={() => handleOAuthLogin("github")}
-          disabled={isLoading}
+          disabled={isOAuthLoading}
         >
           <Github className="mr-2 h-4 w-4" />
-          {isLoading ? "跳转中..." : "使用 GitHub 登录"}
+          {isOAuthLoading ? "跳转中..." : "使用 GitHub 登录"}
         </Button>
       </div>
 
