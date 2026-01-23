@@ -70,9 +70,44 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      // 允许 OAuth 账户链接到已存在的邮箱账户
+      // 处理 OAuth 账户链接
       if (account?.provider === "github" || account?.provider === "google") {
-        return true;
+        if (!user.email) return false;
+
+        // 检查邮箱是否已存在
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          include: { accounts: true },
+        });
+
+        if (existingUser) {
+          // 检查是否已经链接了这个 OAuth 账户
+          const accountExists = existingUser.accounts.some(
+            (acc) => acc.provider === account.provider && acc.providerAccountId === account.providerAccountId
+          );
+
+          if (!accountExists) {
+            // 手动创建 Account 记录链接到已存在的用户
+            await prisma.account.create({
+              data: {
+                userId: existingUser.id,
+                type: account.type,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                access_token: account.access_token,
+                token_type: account.token_type,
+                scope: account.scope,
+                refresh_token: account.refresh_token,
+                expires_at: account.expires_at,
+                id_token: account.id_token,
+                session_state: account.session_state,
+              },
+            });
+          }
+
+          // 更新 user 对象的 id 为已存在用户的 id
+          user.id = existingUser.id;
+        }
       }
       return true;
     },
